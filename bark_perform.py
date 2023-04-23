@@ -110,7 +110,7 @@ def save_audio_to_file(filepath, audio_array, sample_rate=24000, format='WAV', s
     print(f"Saved audio to {filepath}")
 
 
-def gen_and_save_audio(text_prompt, history_prompt=None, text_temp=0.7, waveform_temp=0.7, filename="", output_dir="bark_samples", split_by_words=0, split_by_lines=0, stable_mode=False, confused_travolta_mode=False, iteration=1):
+def gen_and_save_audio(text_prompt, history_prompt=None, text_temp=0.7, waveform_temp=0.7, use_gpu_for_all_steps=True, filename="", output_dir="bark_samples", split_by_words=0, split_by_lines=0, stable_mode=False, confused_travolta_mode=False, iteration=1):
     def generate_unique_filename(base_filename):
         name, ext = os.path.splitext(base_filename)
         unique_filename = base_filename
@@ -142,7 +142,7 @@ def gen_and_save_audio(text_prompt, history_prompt=None, text_temp=0.7, waveform
         if longer_than_14_seconds:
             print(f"Text Prompt could be too long, might want to try a shorter one or try splitting tighter.")
 
-        audio_array, x = generate_audio(chunk, history_prompt, text_temp=text_temp, waveform_temp=waveform_temp, base=base, confused_travolta_mode=confused_travolta_mode)
+        audio_array, x = generate_audio(chunk, history_prompt, text_temp=text_temp, waveform_temp=waveform_temp, use_gpu_for_all_steps=use_gpu_for_all_steps, base=base, confused_travolta_mode=confused_travolta_mode)
         if saveit is True and npzbase is None:
             npzbase = x
         if stable_mode:
@@ -240,11 +240,12 @@ def main(args):
         
         if args.use_smaller_models:
             print("Using smaller models.")
-            preload_models(use_smaller_models=True)
-        else:
-            preload_models()
+        preload_models(use_smaller_models=args.use_smaller_models, use_gpu=not args.less_gpu)
 
         print("Models loaded.")
+
+        if args.less_gpu:
+            print("Ignoring GPU for step 1 (text to semantic tokens) and a bit of final work.")
 
         for idx, prompt in enumerate(text_prompts_to_process, start=1):
             print(f"Processing prompt {idx} of {len(text_prompts_to_process)}:")
@@ -255,9 +256,9 @@ def main(args):
             if args.iterations > 1: 
                 for iteration in range(1, args.iterations + 1):
                     print(f"Iteration {iteration} of {args.iterations}.")
-                    gen_and_save_audio(prompt, history_prompt, text_temp, waveform_temp, filename, output_dir, split_by_words, split_by_lines, stable_mode, confused_travolta_mode, iteration=iteration)
+                    gen_and_save_audio(prompt, history_prompt, text_temp, waveform_temp, not args.less_gpu, filename, output_dir, split_by_words, split_by_lines, stable_mode, confused_travolta_mode, iteration=iteration)
             else:
-                gen_and_save_audio(prompt, history_prompt, text_temp, waveform_temp, filename, output_dir, split_by_words, split_by_lines, stable_mode, confused_travolta_mode)
+                gen_and_save_audio(prompt, history_prompt, text_temp, waveform_temp, not args.less_gpu, filename, output_dir, split_by_words, split_by_lines, stable_mode, confused_travolta_mode)
 
 
 if __name__ == "__main__":
@@ -298,7 +299,8 @@ if __name__ == "__main__":
     parser.add_argument("--filename", help="Output filename. If not provided, a unique filename will be generated based on the text prompt and other parameters.")
     parser.add_argument("--output_dir", help="Output directory. Default is 'bark_samples'.")
     parser.add_argument("--list_speakers", action="store_true", help="List all preset speaker options instead of generating audio.")
-    parser.add_argument("--use_smaller_models", action="store_true", help="Use for GPUS with less than 10GB of memory, or for more speed.")
+    parser.add_argument("--use_smaller_models", action="store_true", help="Use for GPUs with less than 10GB of memory, or for more speed.")
+    parser.add_argument("--less_gpu", action="store_true", help="To use the CPU for step 1 (text to semantic tokens) and a bit of final work, even if a GPU is present, to reduce VRAM requirements.")
     parser.add_argument("--iterations", type=int, default=1, help="Number of iterations. Default is 1.")
     parser.add_argument("--split_by_words", type=int, default=0, help="Breaks text_prompt into <14 second audio clips every x words")
     parser.add_argument("--split_by_lines", type=int, default=0, help="Breaks text_prompt into <14 second audio clips every x lines")
