@@ -1,3 +1,20 @@
+# Now you can run Bark on Jupiter Notebook
+## How to
+
+1. Install [JupiterLab](https://jupyterlab.readthedocs.io/en/stable/getting_started/installation.html)
+2. Run `jupyter lab --ip=0.0.0.0 --port=7070 --notebook-dir=D:/ --preferred-dir <path_to_the_project>\bark-infinity\notebooks`
+3. Open `bark_conversation.ipynb` on the jupyterlab interface
+4. Change this cell
+```
+prompts = [
+    BarkAudio("1", "en_fiery", "Hi everyone, welcome to my podcast. We have James with us right here. James, how are you?"),
+    BarkAudio("2", None, "I'm doing good. Thanks for asking [laugh]. You looks good today."),
+]
+```
+It is basically where you put your conversation. The format is BarkAudio(`<audio_index>`, `<history_prompt>`, `<prompt_text>`).
+make sure your `<history_prompt>` is present in `/bark/assets/prompts` directory. You can also put `None` to the `<history_prompt>` param to make it generate random voice.
+
+
 # 🚀 BARK INFINITY 🎶
 
 _(This is no longer just a command line wrapper...)_
