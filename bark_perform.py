@@ -6,10 +6,11 @@ import datetime
 import soundfile as sf
 import re
 from collections import defaultdict, namedtuple
+from os import listdir
+from os.path import isfile, join
+import wave
 
 FileData = namedtuple("FileData", ["filename", "name", "desc"])
-
-
 
 SUPPORTED_LANGS = [
     ("English", "en"),
@@ -27,7 +28,11 @@ SUPPORTED_LANGS = [
     ("Chinese", "zh"),
 ]
 
-
+class BarkAudio():
+    def __init__(self, index, speaker, prompt):
+        self.index = index
+        self.speaker = speaker
+        self.prompt = prompt
 
 def read_npz_files(directory):
     return [f for f in os.listdir(directory) if f.endswith(".npz")]
@@ -94,6 +99,9 @@ def save_npz_file(filepath, x_semantic_continued, coarse_prompt, fine_prompt, ou
     np.savez(filepath, semantic_prompt=x_semantic_continued, coarse_prompt=coarse_prompt, fine_prompt=fine_prompt)
     print(f"speaker file for this clip saved to {filepath}")
 
+def get_absolute_path(path):
+    return os.path.abspath(path)
+
 def split_text(text, split_words=0, split_lines=0):
     if split_words > 0:
         words = text.split()
@@ -107,10 +115,40 @@ def split_text(text, split_words=0, split_lines=0):
 
 def save_audio_to_file(filepath, audio_array, sample_rate=24000, format='WAV', subtype='PCM_16', output_dir=None):
     sf.write(filepath, audio_array, sample_rate, format=format, subtype=subtype)
-    print(f"Saved audio to {filepath}")
+    print(f"Saved audio to {get_absolute_path(filepath)}")
 
+def combined_audio_file(output_dir, conversation_name):
+    conversation_dir = output_dir + "\\" + conversation_name
+    output_dir_abs = get_absolute_path(output_dir)
+    conversation_dir_abs = get_absolute_path(conversation_dir)
 
-def gen_and_save_audio(text_prompt, history_prompt=None, text_temp=0.7, waveform_temp=0.7, filename="", output_dir="bark_samples", split_by_words=0, split_by_lines=0, stable_mode=False, confused_travolta_mode=False, iteration=1):
+    infiles = [f for f in os.listdir(conversation_dir_abs) if f.endswith('.wav')]
+    date_str = datetime.datetime.now().strftime("%Y-%m-%d-%H")
+    outfile = f"{conversation_name}-{date_str}-combined.wav"
+
+    data= []
+    for infile in infiles:
+        w = wave.open(conversation_dir_abs + "\\" + infile, 'rb')
+        data.append( [w.getparams(), w.readframes(w.getnframes())] )
+        w.close()
+    
+    result_file_path = output_dir_abs + "\\" + outfile
+
+    i = 1
+    name, ext = os.path.splitext(result_file_path)
+    while os.path.exists(result_file_path):
+        result_file_path = f"{name}_{i}{ext}"
+        i += 1
+
+    output = wave.open(result_file_path, 'wb')
+    output.setparams(data[0][0])
+    for i in range(len(data)):
+        output.writeframes(data[i][1])
+    output.close()
+    print(f"Saved combined audio to {result_file_path}")
+    return result_file_path
+
+def gen_and_save_audio(text_prompt, history_prompt=None, text_temp=0.7, waveform_temp=0.7, filename="", output_dir="bark_samples", split_by_words=0, split_by_lines=0, stable_mode=False, confused_travolta_mode=False, iteration=1, override_existing_file=False):
     def generate_unique_filename(base_filename):
         name, ext = os.path.splitext(base_filename)
         unique_filename = base_filename
@@ -123,10 +161,6 @@ def gen_and_save_audio(text_prompt, history_prompt=None, text_temp=0.7, waveform
     saveit = True if history_prompt is None else False
     if iteration == 1:
         print(f"Full Prompt: {text_prompt}")
-        if args.history_prompt:
-            print(f"  Using speaker: {history_prompt}")
-        else:
-            print(f"  No speaker. Randomly generating a speaker.")
  
     text_chunks = split_text(text_prompt, split_by_words, split_by_lines)
     
@@ -153,7 +187,7 @@ def gen_and_save_audio(text_prompt, history_prompt=None, text_temp=0.7, waveform
         audio_arr_chunks.append(audio_array)
         
     concatenated_audio_arr = np.concatenate(audio_arr_chunks)
-
+    
     if not filename:
         date_str = datetime.datetime.now().strftime("%Y-%m-%d-%H")
         truncated_text = text_prompt.replace("WOMAN:", "").replace("MAN:", "")[:15].strip().replace(" ", "_")
@@ -169,15 +203,14 @@ def gen_and_save_audio(text_prompt, history_prompt=None, text_temp=0.7, waveform
 
     i = 1
     name, ext = os.path.splitext(filepath)
-    while os.path.exists(filepath):
-        filepath = f"{name}_{i}{ext}"
-        i += 1
-
+    if override_existing_file is not True:
+        while os.path.exists(filepath):
+            filepath = f"{name}_{i}{ext}"
+            i += 1
     if saveit is True:
         save_npz_file(f'{filepath}.npz', npzbase[0], npzbase[1], npzbase[2], output_dir=output_dir)
 
     save_audio_to_file(filepath, concatenated_audio_arr, SAMPLE_RATE, output_dir=output_dir)
-
 
 
 # If there's no text_prompt passed on the command line, process this list instead.
