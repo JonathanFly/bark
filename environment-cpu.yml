@@ -36,3 +36,5 @@ dependencies:
   - rich
   - gradio
   - nltk
+  - encodec
+  - rich_argparse
