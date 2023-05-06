@@ -1,4 +1,4 @@
-name: bark-infinity-oneclick
+name: bark-infinity-cuda
 channels:
   - defaults
   - pytorch
