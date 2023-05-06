@@ -32,18 +32,20 @@ for _, lang in SUPPORTED_LANGS:
     for n in range(10):
         ALLOWED_PROMPTS.add(f"speaker_{n}")
 
+
 def estimate_spoken_time(text, wpm=150, time_limit=14):
     # Remove text within square brackets
     text_without_brackets = re.sub(r'\[.*?\]', '', text)
-    
+
     words = text_without_brackets.split()
     word_count = len(words)
     time_in_seconds = (word_count / wpm) * 60
-    
+
     if time_in_seconds > time_limit:
         return True, time_in_seconds
     else:
         return False, time_in_seconds
+
 
 def save_audio_to_file(filename, audio_array, sample_rate=24000, format='WAV', subtype='PCM_16', output_dir=None):
 
@@ -60,7 +62,8 @@ def save_audio_to_file(filename, audio_array, sample_rate=24000, format='WAV', s
         filepath = f"{name}_{i}{ext}"
         i += 1
 
-    sf.write(filepath, audio_array, sample_rate, format=format, subtype=subtype)
+    sf.write(filepath, audio_array, sample_rate,
+             format=format, subtype=subtype)
     print(f"Saved audio to {filepath}")
 
 
@@ -81,22 +84,22 @@ def gen_and_save_audio(text_prompt,  history_prompt=None, text_temp=0.7, wavefor
     print(f"Generating: {text_prompt}")
     if args.history_prompt:
         print(f"Using speaker: {history_prompt}")
-  
+
     else:
         print(f"No speaker. Randomly generating a speaker.")
- 
+
     audio_array = generate_audio(text_prompt, history_prompt, text_temp=text_temp,
-                                                      waveform_temp=waveform_temp)
+                                 waveform_temp=waveform_temp)
 
     if not filename:
         date_str = datetime.datetime.now().strftime("%Y-%m-%d-%H")
-        truncated_text = text_prompt.replace("WOMAN:", "").replace("MAN:", "")[:15].strip().replace(" ", "_")
+        truncated_text = text_prompt.replace("WOMAN:", "").replace("MAN:", "")[
+            :15].strip().replace(" ", "_")
         filename = f"{truncated_text}-history_prompt-{history_prompt}-text_temp-{text_temp}-waveform_temp-{waveform_temp}-{date_str}.wav"
         filename = generate_unique_filename(filename)
 
-    save_audio_to_file(filename, audio_array, SAMPLE_RATE, output_dir=output_dir)
-
-
+    save_audio_to_file(filename, audio_array,
+                       SAMPLE_RATE, output_dir=output_dir)
 
 
 def print_speakers_list():
@@ -108,7 +111,6 @@ def print_speakers_list():
     for language, lang_code in SUPPORTED_LANGS:
         speakers = ", ".join([f"{lang_code}_speaker_{n}" for n in range(10)])
         print(f"\n  {language}({lang_code}):\n{speakers}")
-
 
 
 # If there's no text_prompt passed on the command line, process this list instead.
@@ -134,7 +136,7 @@ def main(args):
         else:
             print("No text prompt provided. Using default prompts defined in this file.")
             text_prompts_to_process = text_prompts
-        if args.history_prompt: 
+        if args.history_prompt:
             history_prompt = args.history_prompt
         else:
             history_prompt = None
@@ -144,7 +146,7 @@ def main(args):
         output_dir = args.output_dir if args.output_dir else "bark_samples"
 
         print("Loading Bark models...")
-        
+
         if args.use_smaller_models:
             print("Using smaller models.")
             preload_models(use_smaller_models=True)
@@ -154,7 +156,9 @@ def main(args):
         print("Models loaded.")
 
         for prompt in text_prompts_to_process:
-            gen_and_save_audio(prompt, history_prompt, text_temp, waveform_temp, filename, output_dir)
+            gen_and_save_audio(prompt, history_prompt, text_temp,
+                               waveform_temp, filename, output_dir)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="""
@@ -162,14 +166,22 @@ if __name__ == "__main__":
         install this first: pip install soundfile
         Example: python bark_speak.py --text_prompt "It is a mistake to think you can solve any major problems just with potatoes." --history_prompt en_speaker_3
         """, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("--text_prompt", help="Text prompt. If not provided, a set of default prompts will be used defined in this file.")
-    parser.add_argument("--history_prompt", help="Optional. Choose a speaker from the list of languages: " + ", ".join([lang[0] for lang in SUPPORTED_LANGS]) + ". Use --list_speakers to see all available options.")
-    parser.add_argument("--text_temp", type=float, help="Text temperature. Default is 0.7.")
-    parser.add_argument("--waveform_temp", type=float, help="Waveform temperature. Default is 0.7.")
-    parser.add_argument("--filename", help="Output filename. If not provided, a unique filename will be generated based on the text prompt and other parameters.")
-    parser.add_argument("--output_dir", help="Output directory. Default is 'bark_samples'.")
-    parser.add_argument("--list_speakers", action="store_true", help="List all preset speaker options instead of generating audio.")
-    parser.add_argument("--use_smaller_models", action="store_true", help="Use for GPUS with less than 10GB of memory, or for more speed.")
+    parser.add_argument(
+        "--text_prompt", help="Text prompt. If not provided, a set of default prompts will be used defined in this file.")
+    parser.add_argument("--history_prompt", help="Optional. Choose a speaker from the list of languages: " +
+                        ", ".join([lang[0] for lang in SUPPORTED_LANGS]) + ". Use --list_speakers to see all available options.")
+    parser.add_argument("--text_temp", type=float,
+                        help="Text temperature. Default is 0.7.")
+    parser.add_argument("--waveform_temp", type=float,
+                        help="Waveform temperature. Default is 0.7.")
+    parser.add_argument(
+        "--filename", help="Output filename. If not provided, a unique filename will be generated based on the text prompt and other parameters.")
+    parser.add_argument(
+        "--output_dir", help="Output directory. Default is 'bark_samples'.")
+    parser.add_argument("--list_speakers", action="store_true",
+                        help="List all preset speaker options instead of generating audio.")
+    parser.add_argument("--use_smaller_models", action="store_true",
+                        help="Use for GPUS with less than 10GB of memory, or for more speed.")
 
     args = parser.parse_args()
     main(args)

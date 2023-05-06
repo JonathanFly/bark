@@ -1,3 +1,6 @@
+from bark_infinity import text_processing
+from bark_infinity import api
+from bark_infinity import generation
 import argparse
 import numpy as np
 
@@ -6,11 +9,6 @@ from rich import print
 from bark_infinity import config
 
 logger = config.logger
-
-from bark_infinity import generation
-from bark_infinity import api
-
-from bark_infinity import text_processing
 
 
 generation.OFFLOAD_CPU = True
@@ -28,6 +26,7 @@ text_prompt = """
 """
 text_prompts.append(text_prompt)
 
+
 def get_group_args(group_name, updated_args):
     # Convert the Namespace object to a dictionary
     updated_args_dict = vars(updated_args)
@@ -38,12 +37,11 @@ def get_group_args(group_name, updated_args):
             group_args[key] = value
     return group_args
 
+
 def main(args):
 
     if args.loglevel is not None:
         logger.setLevel(args.loglevel)
-
-
 
     if args.list_speakers:
         api.list_speakers()
@@ -75,8 +73,6 @@ def main(args):
             print(
                 f"WARNING: You are about to process {things} prompts. Consider using '--dry-run' to test things first.")
 
-
-
     """    
     def preload_models(
         text_use_gpu=True,
@@ -89,14 +85,13 @@ def main(args):
         force_reload=False,
     ):
     """
-    #pprint(args) 
+    # pprint(args)
     print("Loading Bark models...")
     if not args.dry_run:
-        generation.preload_models(args.text_use_gpu, args.text_use_small, args.coarse_use_gpu, args.coarse_use_small, args.fine_use_gpu, args.fine_use_small, args.codec_use_gpu, args.force_reload)
+        generation.preload_models(args.text_use_gpu, args.text_use_small, args.coarse_use_gpu, args.coarse_use_small,
+                                  args.fine_use_gpu, args.fine_use_small, args.codec_use_gpu, args.force_reload)
 
     print("Done.")
-
-    
 
     for idx, text_prompt in enumerate(text_prompts_to_process, start=1):
         if len(text_prompts_to_process) > 1:
