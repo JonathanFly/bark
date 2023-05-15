@@ -1,4 +1,4 @@
-name: bark-infinity-oneclick
+name: bark-infinity-cuda
 channels:
   - defaults
   - pytorch
@@ -39,3 +39,5 @@ dependencies:
   - rich
   - gradio
   - nltk
+  - encodec
+  - rich_argparse

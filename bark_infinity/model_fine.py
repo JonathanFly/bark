@@ -17,7 +17,8 @@ class NonCausalSelfAttention(nn.Module):
         super().__init__()
         assert config.n_embd % config.n_head == 0
         # key, query, value projections for all heads, but in a batch
-        self.c_attn = nn.Linear(config.n_embd, 3 * config.n_embd, bias=config.bias)
+        self.c_attn = nn.Linear(
+            config.n_embd, 3 * config.n_embd, bias=config.bias)
         # output projection
         self.c_proj = nn.Linear(config.n_embd, config.n_embd, bias=config.bias)
         # regularization
@@ -28,7 +29,8 @@ class NonCausalSelfAttention(nn.Module):
         self.dropout = config.dropout
         # flash attention make GPU go brrrrr but support is only in PyTorch nightly and still a bit scary
         self.flash = (
-            hasattr(torch.nn.functional, "scaled_dot_product_attention") and self.dropout == 0.0
+            hasattr(torch.nn.functional,
+                    "scaled_dot_product_attention") and self.dropout == 0.0
         )
 
     def forward(self, x):
@@ -36,9 +38,12 @@ class NonCausalSelfAttention(nn.Module):
 
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
         q, k, v = self.c_attn(x).split(self.n_embd, dim=2)
-        k = k.view(B, T, self.n_head, C // self.n_head).transpose(1, 2)  # (B, nh, T, hs)
-        q = q.view(B, T, self.n_head, C // self.n_head).transpose(1, 2)  # (B, nh, T, hs)
-        v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2)  # (B, nh, T, hs)
+        k = k.view(B, T, self.n_head, C //
+                   self.n_head).transpose(1, 2)  # (B, nh, T, hs)
+        q = q.view(B, T, self.n_head, C //
+                   self.n_head).transpose(1, 2)  # (B, nh, T, hs)
+        v = v.view(B, T, self.n_head, C //
+                   self.n_head).transpose(1, 2)  # (B, nh, T, hs)
 
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         if self.flash:
@@ -91,7 +96,8 @@ class FineGPT(GPT):
                 ),
                 wpe=nn.Embedding(config.block_size, config.n_embd),
                 drop=nn.Dropout(config.dropout),
-                h=nn.ModuleList([FineBlock(config) for _ in range(config.n_layer)]),
+                h=nn.ModuleList([FineBlock(config)
+                                for _ in range(config.n_layer)]),
                 ln_f=nn.LayerNorm(config.n_embd),
             )
         )
@@ -112,14 +118,16 @@ class FineGPT(GPT):
         ), f"Cannot forward sequence of length {t}, block size is only {self.config.block_size}"
         assert pred_idx > 0, "cannot predict 0th codebook"
         assert codes == self.n_codes_total, (b, t, codes)
-        pos = torch.arange(0, t, dtype=torch.long, device=device).unsqueeze(0)  # shape (1, t)
+        pos = torch.arange(0, t, dtype=torch.long,
+                           device=device).unsqueeze(0)  # shape (1, t)
 
         # forward the GPT model itself
         tok_embs = [
             wte(idx[:, :, i]).unsqueeze(-1) for i, wte in enumerate(self.transformer.wtes)
         ]  # token embeddings of shape (b, t, n_embd)
         tok_emb = torch.cat(tok_embs, dim=-1)
-        pos_emb = self.transformer.wpe(pos)  # position embeddings of shape (1, t, n_embd)
+        # position embeddings of shape (1, t, n_embd)
+        pos_emb = self.transformer.wpe(pos)
         x = tok_emb[:, :, :, : pred_idx + 1].sum(dim=-1)
         x = self.transformer.drop(x + pos_emb)
         for block in self.transformer.h:

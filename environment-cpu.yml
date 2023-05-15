@@ -1,4 +1,4 @@
-name: bark-infinity
+name: bark-infinity-cpu
 channels:
   - defaults
   - pytorch
@@ -36,3 +36,5 @@ dependencies:
   - rich
   - gradio
   - nltk
+  - encodec
+  - rich_argparse

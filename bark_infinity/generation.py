@@ -82,13 +82,12 @@ for _, lang in SUPPORTED_LANGS:
             ALLOWED_PROMPTS.add(f"{prefix}{lang}_speaker_{n}")
 
 
-
-
 CUR_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
 default_cache_dir = os.path.join(os.path.expanduser("~"), ".cache")
-CACHE_DIR = os.path.join(os.getenv("XDG_CACHE_HOME", default_cache_dir), "suno", "bark_v0")
+CACHE_DIR = os.path.join(
+    os.getenv("XDG_CACHE_HOME", default_cache_dir), "suno", "bark_v0")
 
 
 USE_SMALL_MODELS = os.environ.get("SUNO_USE_SMALL_MODELS", False)
@@ -150,7 +149,8 @@ def _get_ckpt_path(model_type, use_small=False):
 
 def _download(from_hf_path, file_name):
     os.makedirs(CACHE_DIR, exist_ok=True)
-    hf_hub_download(repo_id=from_hf_path, filename=file_name, local_dir=CACHE_DIR)
+    hf_hub_download(repo_id=from_hf_path,
+                    filename=file_name, local_dir=CACHE_DIR)
 
 
 class InferenceContext:
@@ -195,7 +195,6 @@ def clean_models(model_key=None):
 
 
 # def _load_model(ckpt_path, device, use_small=False, model_type="text"):
-    
 
 
 def _load_codec_model(device):
@@ -205,9 +204,6 @@ def _load_codec_model(device):
     model.to(device)
     _clear_cuda_cache()
     return model
-
-
-
 
 
 def load_codec_model(use_gpu=True, force_reload=False):
@@ -227,6 +223,7 @@ def load_codec_model(use_gpu=True, force_reload=False):
         models[model_key] = model
     models[model_key].to(device)
     return models[model_key]
+
 
 """
 def preload_models(
@@ -273,17 +270,19 @@ def _load_history_prompt(history_prompt_input):
         if history_prompt_input not in ALLOWED_PROMPTS:
             raise ValueError("history prompt not found")
         history_prompt = np.load(
-            os.path.join(CUR_PATH, "assets", "prompts", f"{history_prompt_input}.npz")
+            os.path.join(CUR_PATH, "assets", "prompts",
+                         f"{history_prompt_input}.npz")
         )
     elif isinstance(history_prompt_input, dict):
-        assert("semantic_prompt" in history_prompt_input)
-        assert("coarse_prompt" in history_prompt_input)
-        assert("fine_prompt" in history_prompt_input)
+        assert ("semantic_prompt" in history_prompt_input)
+        assert ("coarse_prompt" in history_prompt_input)
+        assert ("fine_prompt" in history_prompt_input)
         history_prompt = history_prompt_input
     else:
         raise ValueError("history prompt format unrecognized")
     return history_prompt
 # removed semantic_history_oversize_limit because merging
+
 
 def generate_text_semantic(
     text,
@@ -300,7 +299,7 @@ def generate_text_semantic(
     """Generate semantic tokens from text."""
 
     logger.debug(locals())
-                 
+
     assert isinstance(text, str)
     text = _normalize_whitespace(text)
     assert len(text.strip()) > 0
@@ -375,7 +374,8 @@ def generate_text_semantic(
             relevant_logits = logits[0, 0, :SEMANTIC_VOCAB_SIZE]
             if allow_early_stop:
                 relevant_logits = torch.hstack(
-                    (relevant_logits, logits[0, 0, [SEMANTIC_PAD_TOKEN]])  # eos
+                    (relevant_logits, logits[0, 0,
+                     [SEMANTIC_PAD_TOKEN]])  # eos
                 )
             if top_p is not None:
                 # faster to convert to numpy
@@ -390,9 +390,11 @@ def generate_text_semantic(
                 sorted_indices_to_remove[0] = False
                 relevant_logits[sorted_indices[sorted_indices_to_remove]] = -np.inf
                 relevant_logits = torch.from_numpy(relevant_logits)
-                relevant_logits = relevant_logits.to(logits_device).type(logits_dtype)
+                relevant_logits = relevant_logits.to(
+                    logits_device).type(logits_dtype)
             if top_k is not None:
-                v, _ = torch.topk(relevant_logits, min(top_k, relevant_logits.size(-1)))
+                v, _ = torch.topk(relevant_logits, min(
+                    top_k, relevant_logits.size(-1)))
                 relevant_logits[relevant_logits < v[-1]] = -float("Inf")
             probs = F.softmax(relevant_logits / temp, dim=-1)
             # multinomial bugged on mps: shuttle to cpu if necessary
@@ -423,7 +425,7 @@ def generate_text_semantic(
                 pbar.update(req_pbar_state - pbar_state)
             pbar_state = req_pbar_state
         pbar.close()
-        out = x.detach().cpu().numpy().squeeze()[256 + 256 + 1 :]
+        out = x.detach().cpu().numpy().squeeze()[256 + 256 + 1:]
     if OFFLOAD_CPU:
         model.to("cpu")
     assert all(0 <= out) and all(out < SEMANTIC_VOCAB_SIZE)
@@ -456,7 +458,7 @@ def generate_coarse(
     sliding_window_len=60,
     use_kv_caching=False,
 ):
-    
+
     logger.debug(locals())
 
     """Generate coarse audio codes from semantic tokens."""
@@ -469,13 +471,15 @@ def generate_coarse(
     )
     assert 60 <= max_coarse_history <= 630
     assert max_coarse_history + sliding_window_len <= 1024 - 256
-    semantic_to_coarse_ratio = COARSE_RATE_HZ / SEMANTIC_RATE_HZ * N_COARSE_CODEBOOKS
-    max_semantic_history = int(np.floor(max_coarse_history / semantic_to_coarse_ratio))
+    semantic_to_coarse_ratio = COARSE_RATE_HZ / \
+        SEMANTIC_RATE_HZ * N_COARSE_CODEBOOKS
+    max_semantic_history = int(
+        np.floor(max_coarse_history / semantic_to_coarse_ratio))
     if history_prompt is not None:
         history_prompt = _load_history_prompt(history_prompt)
         x_semantic_history = history_prompt["semantic_prompt"]
         x_coarse_history = history_prompt["coarse_prompt"]
-        
+
         assert (
             isinstance(x_semantic_history, np.ndarray)
             and len(x_semantic_history.shape) == 1
@@ -493,7 +497,8 @@ def generate_coarse(
                 == round(semantic_to_coarse_ratio / N_COARSE_CODEBOOKS, 1)
             )
         )
-        x_coarse_history = _flatten_codebooks(x_coarse_history) + SEMANTIC_VOCAB_SIZE
+        x_coarse_history = _flatten_codebooks(
+            x_coarse_history) + SEMANTIC_VOCAB_SIZE
 
         # trim histories correctly
         n_semantic_hist_provided = np.min(
@@ -503,9 +508,12 @@ def generate_coarse(
                 int(np.floor(len(x_coarse_history) / semantic_to_coarse_ratio)),
             ]
         )
-        n_coarse_hist_provided = int(round(n_semantic_hist_provided * semantic_to_coarse_ratio))
-        x_semantic_history = x_semantic_history[-n_semantic_hist_provided:].astype(np.int32)
-        x_coarse_history = x_coarse_history[-n_coarse_hist_provided:].astype(np.int32)
+        n_coarse_hist_provided = int(
+            round(n_semantic_hist_provided * semantic_to_coarse_ratio))
+        x_semantic_history = x_semantic_history[-n_semantic_hist_provided:].astype(
+            np.int32)
+        x_coarse_history = x_coarse_history[-n_coarse_hist_provided:].astype(
+            np.int32)
         # TODO: bit of a hack for time alignment (sounds better)
         x_coarse_history = x_coarse_history[:-2]
     else:
@@ -523,7 +531,8 @@ def generate_coarse(
     # start loop
     n_steps = int(
         round(
-            np.floor(len(x_semantic) * semantic_to_coarse_ratio / N_COARSE_CODEBOOKS)
+            np.floor(len(x_semantic) *
+                     semantic_to_coarse_ratio / N_COARSE_CODEBOOKS)
             * N_COARSE_CODEBOOKS
         )
     )
@@ -537,9 +546,11 @@ def generate_coarse(
         n_window_steps = int(np.ceil(n_steps / sliding_window_len))
         n_step = 0
         for _ in tqdm.tqdm(range(n_window_steps), total=n_window_steps, disable=silent):
-            semantic_idx = base_semantic_idx + int(round(n_step / semantic_to_coarse_ratio))
+            semantic_idx = base_semantic_idx + \
+                int(round(n_step / semantic_to_coarse_ratio))
             # pad from right side
-            x_in = x_semantic_in[:, np.max([0, semantic_idx - max_semantic_history]) :]
+            x_in = x_semantic_in[:, np.max(
+                [0, semantic_idx - max_semantic_history]):]
             x_in = x_in[:, :256]
             x_in = F.pad(
                 x_in,
@@ -565,12 +576,15 @@ def generate_coarse(
                 else:
                     x_input = x_in
 
-                logits, kv_cache = model(x_input, use_cache=use_kv_caching, past_kv=kv_cache)
+                logits, kv_cache = model(
+                    x_input, use_cache=use_kv_caching, past_kv=kv_cache)
                 logit_start_idx = (
-                    SEMANTIC_VOCAB_SIZE + (1 - int(is_major_step)) * CODEBOOK_SIZE
+                    SEMANTIC_VOCAB_SIZE +
+                    (1 - int(is_major_step)) * CODEBOOK_SIZE
                 )
                 logit_end_idx = (
-                    SEMANTIC_VOCAB_SIZE + (2 - int(is_major_step)) * CODEBOOK_SIZE
+                    SEMANTIC_VOCAB_SIZE +
+                    (2 - int(is_major_step)) * CODEBOOK_SIZE
                 )
                 relevant_logits = logits[0, 0, logit_start_idx:logit_end_idx]
                 if top_p is not None:
@@ -586,9 +600,11 @@ def generate_coarse(
                     sorted_indices_to_remove[0] = False
                     relevant_logits[sorted_indices[sorted_indices_to_remove]] = -np.inf
                     relevant_logits = torch.from_numpy(relevant_logits)
-                    relevant_logits = relevant_logits.to(logits_device).type(logits_dtype)
+                    relevant_logits = relevant_logits.to(
+                        logits_device).type(logits_dtype)
                 if top_k is not None:
-                    v, _ = torch.topk(relevant_logits, min(top_k, relevant_logits.size(-1)))
+                    v, _ = torch.topk(relevant_logits, min(
+                        top_k, relevant_logits.size(-1)))
                     relevant_logits[relevant_logits < v[-1]] = -float("Inf")
                 probs = F.softmax(relevant_logits / temp, dim=-1)
                 # multinomial bugged on mps: shuttle to cpu if necessary
@@ -607,10 +623,12 @@ def generate_coarse(
         del x_semantic_in
     if OFFLOAD_CPU:
         model.to("cpu")
-    gen_coarse_arr = x_coarse_in.detach().cpu().numpy().squeeze()[len(x_coarse_history) :]
+    gen_coarse_arr = x_coarse_in.detach().cpu().numpy().squeeze()[
+        len(x_coarse_history):]
     del x_coarse_in
     assert len(gen_coarse_arr) == n_steps
-    gen_coarse_audio_arr = gen_coarse_arr.reshape(-1, N_COARSE_CODEBOOKS).T - SEMANTIC_VOCAB_SIZE
+    gen_coarse_audio_arr = gen_coarse_arr.reshape(
+        -1, N_COARSE_CODEBOOKS).T - SEMANTIC_VOCAB_SIZE
     for n in range(1, N_COARSE_CODEBOOKS):
         gen_coarse_audio_arr[n, :] -= n * CODEBOOK_SIZE
     _clear_cuda_cache()
@@ -624,7 +642,6 @@ def generate_fine(
     silent=True,
 ):
     logger.debug(locals())
-
 
     """Generate full audio codes from coarse audio codes."""
     assert (
@@ -685,22 +702,26 @@ def generate_fine(
         in_arr = np.hstack(
             [
                 in_arr,
-                np.zeros((N_FINE_CODEBOOKS, n_remove_from_end), dtype=np.int32) + CODEBOOK_SIZE,
+                np.zeros((N_FINE_CODEBOOKS, n_remove_from_end),
+                         dtype=np.int32) + CODEBOOK_SIZE,
             ]
         )
     # we can be lazy about fractional loop and just keep overwriting codebooks
-    n_loops = np.max([0, int(np.ceil((x_coarse_gen.shape[1] - (1024 - n_history)) / 512))]) + 1
+    n_loops = np.max(
+        [0, int(np.ceil((x_coarse_gen.shape[1] - (1024 - n_history)) / 512))]) + 1
     with _inference_mode():
         in_arr = torch.tensor(in_arr.T).to(device)
         for n in tqdm.tqdm(range(n_loops), disable=silent):
             start_idx = np.min([n * 512, in_arr.shape[0] - 1024])
-            start_fill_idx = np.min([n_history + n * 512, in_arr.shape[0] - 512])
+            start_fill_idx = np.min(
+                [n_history + n * 512, in_arr.shape[0] - 512])
             rel_start_fill_idx = start_fill_idx - start_idx
-            in_buffer = in_arr[start_idx : start_idx + 1024, :][None]
+            in_buffer = in_arr[start_idx: start_idx + 1024, :][None]
             for nn in range(n_coarse, N_FINE_CODEBOOKS):
                 logits = model(nn, in_buffer)
                 if temp is None:
-                    relevant_logits = logits[0, rel_start_fill_idx:, :CODEBOOK_SIZE]
+                    relevant_logits = logits[0,
+                                             rel_start_fill_idx:, :CODEBOOK_SIZE]
                     codebook_preds = torch.argmax(relevant_logits, -1)
                 else:
                     relevant_logits = logits[0, :, :CODEBOOK_SIZE] / temp
@@ -711,7 +732,8 @@ def generate_fine(
                         probs = probs.to("cpu")
                     codebook_preds = torch.hstack(
                         [
-                            torch.multinomial(probs[nnn], num_samples=1).to(inf_device)
+                            torch.multinomial(
+                                probs[nnn], num_samples=1).to(inf_device)
                             for nnn in range(rel_start_fill_idx, 1024)
                         ]
                     )
@@ -720,7 +742,7 @@ def generate_fine(
             # transfer over info into model_in and convert to numpy
             for nn in range(n_coarse, N_FINE_CODEBOOKS):
                 in_arr[
-                    start_fill_idx : start_fill_idx + (1024 - rel_start_fill_idx), nn
+                    start_fill_idx: start_fill_idx + (1024 - rel_start_fill_idx), nn
                 ] = in_buffer[0, rel_start_fill_idx:, nn]
             del in_buffer
         gen_fine_arr = in_arr.detach().cpu().numpy().squeeze().T
@@ -758,14 +780,15 @@ def codec_decode(fine_tokens):
     return audio_arr
 
 
-## Added:
+# Added:
 
 # Just overriding this because somehow I keep loading the wrong models?
 def load_model(use_gpu=True, use_small=False, force_reload=False, model_type="text"):
 
     logger.debug(locals())
 
-    _load_model_f = funcy.partial(_load_model, model_type=model_type, use_small=use_small)
+    _load_model_f = funcy.partial(
+        _load_model, model_type=model_type, use_small=use_small)
     if model_type not in ("text", "coarse", "fine"):
         raise NotImplementedError()
     global models
@@ -803,13 +826,17 @@ def _load_model(ckpt_path, device, use_small=False, model_type="text"):
     model_key = f"{model_type}_small" if use_small or USE_SMALL_MODELS else model_type
     model_info = REMOTE_MODEL_PATHS[model_key]
     if not os.path.exists(ckpt_path):
-        logger.info(f"{model_type} model not found, downloading into `{CACHE_DIR}`.")
-        remote_filename = hf_hub_url(model_info["repo_id"], model_info["file_name"])
-        ## added, actually screw logging, just print, rest easy always knowing which model is loaded
-        print(f"Downloading {model_key} {model_info['repo_id']} remote model file {remote_filename} {model_info['file_name']} to {CACHE_DIR}")  # added
+        logger.info(
+            f"{model_type} model not found, downloading into `{CACHE_DIR}`.")
+        remote_filename = hf_hub_url(
+            model_info["repo_id"], model_info["file_name"])
+        # added, actually screw logging, just print, rest easy always knowing which model is loaded
+        # added
+        print(
+            f"Downloading {model_key} {model_info['repo_id']} remote model file {remote_filename} {model_info['file_name']} to {CACHE_DIR}")
         _download(model_info["repo_id"], model_info["file_name"])
-    ## added
-    print(f"Loading {model_key} model from {ckpt_path} to {device}") # added
+    # added
+    print(f"Loading {model_key} model from {ckpt_path} to {device}")  # added
     checkpoint = torch.load(ckpt_path, map_location=device)
 
     # this is a hack
@@ -825,11 +852,12 @@ def _load_model(ckpt_path, device, use_small=False, model_type="text"):
     unwanted_prefix = "_orig_mod."
     for k, v in list(state_dict.items()):
         if k.startswith(unwanted_prefix):
-            state_dict[k[len(unwanted_prefix) :]] = state_dict.pop(k)
+            state_dict[k[len(unwanted_prefix):]] = state_dict.pop(k)
     extra_keys = set(state_dict.keys()) - set(model.state_dict().keys())
     extra_keys = set([k for k in extra_keys if not k.endswith(".attn.bias")])
     missing_keys = set(model.state_dict().keys()) - set(state_dict.keys())
-    missing_keys = set([k for k in missing_keys if not k.endswith(".attn.bias")])
+    missing_keys = set(
+        [k for k in missing_keys if not k.endswith(".attn.bias")])
     if len(extra_keys) != 0:
         raise ValueError(f"extra keys found: {extra_keys}")
     if len(missing_keys) != 0:
@@ -837,13 +865,15 @@ def _load_model(ckpt_path, device, use_small=False, model_type="text"):
     model.load_state_dict(state_dict, strict=False)
     n_params = model.get_num_params()
     val_loss = checkpoint["best_val_loss"].item()
-    logger.info(f"model loaded: {round(n_params/1e6,1)}M params, {round(val_loss,3)} loss")
+    logger.info(
+        f"model loaded: {round(n_params/1e6,1)}M params, {round(val_loss,3)} loss")
     model.eval()
     model.to(device)
     del checkpoint, state_dict
     _clear_cuda_cache()
     if model_type == "text":
-        tokenizer = BertTokenizer.from_pretrained("bert-base-multilingual-cased")
+        tokenizer = BertTokenizer.from_pretrained(
+            "bert-base-multilingual-cased")
         return {
             "model": model,
             "tokenizer": tokenizer,
@@ -863,11 +893,10 @@ def preload_models(
 ):
     """Load all the necessary models for the pipeline."""
 
-
-
     # What is going on here
-    logger.debug(f"USE_SMALL_MODELS = {USE_SMALL_MODELS} GLOBAL_ENABLE_MPS = {GLOBAL_ENABLE_MPS}, OFFLOAD_CPU = {OFFLOAD_CPU}")
-    logger.debug(f"text_use_gpu = {text_use_gpu}, text_use_small = {text_use_small}, coarse_use_gpu = {coarse_use_gpu}, coarse_use_small = {coarse_use_small}, fine_use_gpu = {fine_use_gpu}, fine_use_small = {fine_use_small}, codec_use_gpu = {codec_use_gpu}, force_reload = {force_reload}") 
+    logger.debug(
+        f"USE_SMALL_MODELS = {USE_SMALL_MODELS} GLOBAL_ENABLE_MPS = {GLOBAL_ENABLE_MPS}, OFFLOAD_CPU = {OFFLOAD_CPU}")
+    logger.debug(f"text_use_gpu = {text_use_gpu}, text_use_small = {text_use_small}, coarse_use_gpu = {coarse_use_gpu}, coarse_use_small = {coarse_use_small}, fine_use_gpu = {fine_use_gpu}, fine_use_small = {fine_use_small}, codec_use_gpu = {codec_use_gpu}, force_reload = {force_reload}")
 
     # Is this actually bugged in Bark main, not my fault? This is checked further down the stack, but the chkpt_path is not updated in places
 
@@ -877,11 +906,12 @@ def preload_models(
         text_use_small = True
         coarse_use_small = True
         fine_use_small = True
-    
+
     if _grab_best_device() == "cpu" and (
         text_use_gpu or coarse_use_gpu or fine_use_gpu or codec_use_gpu
     ):
-        logger.warning("No GPU being used. Careful, inference might be very slow!")
+        logger.warning(
+            "No GPU being used. Careful, inference might be very slow!")
     _ = load_model(
         model_type="text", use_gpu=text_use_gpu, use_small=text_use_small, force_reload=force_reload
     )
@@ -933,7 +963,7 @@ def set_seed(seed: int = 0):
         # Use default_rng() because it is independent of np.random.seed()
         seed = np.random.default_rng().integers(1, 2**32 - 1)
 
-    assert(0 < seed and seed < 2**32)
+    assert (0 < seed and seed < 2**32)
 
     np.random.seed(seed)
     random.seed(seed)
@@ -944,5 +974,3 @@ def set_seed(seed: int = 0):
     logger.info(f"Set seed to {seed}")
 
     return original_seed if original_seed != 0 else seed
-
-
