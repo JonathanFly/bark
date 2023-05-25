@@ -386,7 +386,6 @@ def generate_audio_long_gradio(input, audio_prompt_input, bark_speaker_as_the_pr
     kwargs["output_iterations"] = output_iterations
 
     npz_files = None
-    print("Specific npx files {folder}".format(folder=specific_npz_folder))
     if specific_npz_folder is not None and specific_npz_folder != '':
         npz_files = [f for f in os.listdir(specific_npz_folder) if f.endswith(".npz")]
         npz_files.sort()

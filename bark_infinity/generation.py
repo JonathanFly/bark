@@ -355,7 +355,6 @@ def generate_text_semantic(
     model = model_container["model"]
     tokenizer = model_container["tokenizer"]
     encoded_text = np.array(_tokenize(tokenizer, text)) + TEXT_ENCODING_OFFSET
-    print("model devices: {models_devices}".format(models_devices=models_devices))
     if OFFLOAD_CPU:
         device = _grab_best_device(use_gpu=False)
         models_devices["text"] = device
