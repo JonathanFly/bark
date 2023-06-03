@@ -450,7 +450,44 @@ def generate_audio_long_gradio_clones(input, audio_prompt_input, bark_speaker_as
 
     output_dir = f"cloned_voices/{output_voice}_samples"
 
-    return generate_audio_long_gradio(input, audio_prompt_input, bark_speaker_as_the_prompt, npz_dropdown, generated_voices, cloned_voices, bark_infinity_voices, confused_travolta_mode, stable_mode_interval, seperate_prompts, seperate_prompts_flipper, split_character_goal_length, split_character_max_length, process_text_by_each, in_groups_of_size, group_text_by_counting, split_type_string, prompt_text_prefix, seed, text_splits_only,output_iterations,hoarder_mode, text_temp, waveform_temp, semantic_min_eos_p, output_dir, output_filename, output_format, add_silence_between_segments, semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file, specific_npz_folder, split_character_jitter, extra_args_str, progress=gr.Progress(track_tqdm=True))
+    return generate_audio_long_gradio(
+        input, 
+        audio_prompt_input, 
+        bark_speaker_as_the_prompt, 
+        npz_dropdown, 
+        generated_voices, 
+        cloned_voices, 
+        bark_infinity_voices, 
+        confused_travolta_mode, 
+        stable_mode_interval, 
+        seperate_prompts, 
+        seperate_prompts_flipper, 
+        split_character_goal_length, 
+        split_character_max_length, 
+        process_text_by_each, 
+        in_groups_of_size, 
+        group_text_by_counting, 
+        split_type_string, 
+        prompt_text_prefix, 
+        seed, 
+        text_splits_only,
+        output_iterations,hoarder_mode, 
+        text_temp, 
+        waveform_temp, 
+        semantic_min_eos_p, 
+        output_dir, 
+        output_filename, 
+        output_format, 
+        add_silence_between_segments, 
+        semantic_top_k, 
+        semantic_top_p, 
+        coarse_top_k, 
+        coarse_top_p, 
+        specific_npz_file, 
+        specific_npz_folder, 
+        split_character_jitter, 
+        extra_args_str, 
+        progress=gr.Progress(track_tqdm=True))
                                       
 def create_npz_dropdown_dir(directories, label):
     npz_files_by_subfolder = defaultdict(list)
@@ -1214,7 +1251,7 @@ with gr.Blocks(theme=default_theme,css=bark_console_style) as demo:
 
 
 
-    clone_voice_button.click(clone_voice_gradio, inputs=[input_audio_filename, input_audio_filename_secondary, semantic_step_interval, output_voice, create_samples_for_clones, even_more_clones], outputs=dummy).success(generate_audio_long_gradio_clones,inputs=[input, audio_prompt_input, bark_speaker_as_the_prompt, npz_dropdown, generated_voices, cloned_voices, bark_infinity_voices, confused_travolta_mode,stable_mode_interval,seperate_prompts, seperate_prompts_flipper, split_character_goal_length,split_character_max_length, process_text_by_each, in_groups_of_size, group_text_by_counting, split_type_string, prompt_text_prefix, seed, text_splits_only, output_iterations, hoarder_mode, text_temp, waveform_temp,semantic_min_eos_p, output_dir, output_filename, output_format, add_silence_between_segments, semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file, dummy, split_character_jitter, extra_args_input, output_voice], outputs=[audio_output])
+    clone_voice_button.click(clone_voice_gradio, inputs=[input_audio_filename, input_audio_filename_secondary, semantic_step_interval, output_voice, create_samples_for_clones, even_more_clones], outputs=dummy).success(generate_audio_long_gradio_clones,inputs=[input, audio_prompt_input, bark_speaker_as_the_prompt, npz_dropdown, generated_voices, cloned_voices, bark_infinity_voices, confused_travolta_mode,stable_mode_interval,seperate_prompts, seperate_prompts_flipper, split_character_goal_length,split_character_max_length, process_text_by_each, in_groups_of_size, group_text_by_counting, split_type_string, prompt_text_prefix, seed, text_splits_only, output_iterations, hoarder_mode, text_temp, waveform_temp,semantic_min_eos_p, output_dir, output_filename, output_format, add_silence_between_segments, semantic_top_k, semantic_top_p, coarse_top_k, coarse_top_p, specific_npz_file, specific_npz_folder, split_character_jitter, extra_args_input, output_voice], outputs=[audio_output])
     
     
     cancel_button.click(fn=try_to_cancel, inputs=model_checkboxes, outputs=None, cancels=[generate_event])

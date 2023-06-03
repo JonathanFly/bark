@@ -356,6 +356,8 @@ def generate_text_semantic(
     tokenizer = model_container["tokenizer"]
     encoded_text = np.array(_tokenize(tokenizer, text)) + TEXT_ENCODING_OFFSET
     if OFFLOAD_CPU:
+        device = _grab_best_device(use_gpu=False)
+        models_devices["text"] = device
         model.to(models_devices["text"])
     device = next(model.parameters()).device
     if len(encoded_text) > 256:
@@ -551,6 +553,8 @@ def generate_coarse(
         preload_models()
     model = models["coarse"]
     if OFFLOAD_CPU:
+        device = _grab_best_device(use_gpu=False)
+        models_devices["coarse"] = device
         model.to(models_devices["coarse"])
     device = next(model.parameters()).device
     # start loop
@@ -692,6 +696,8 @@ def generate_fine(
         preload_models()
     model = models["fine"]
     if OFFLOAD_CPU:
+        device = _grab_best_device(use_gpu=False)
+        models_devices["fine"] = device
         model.to(models_devices["fine"])
     device = next(model.parameters()).device
     # make input arr
@@ -797,6 +803,8 @@ def codec_decode(fine_tokens):
         preload_models()
     model = models["codec"]
     if OFFLOAD_CPU:
+        device = _grab_best_device(use_gpu=False)
+        models_devices["codec"] = device
         model.to(models_devices["codec"])
     device = next(model.parameters()).device
     arr = torch.from_numpy(fine_tokens)[None]
