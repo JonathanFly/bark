@@ -26,7 +26,7 @@
 
 ## Install Problems
 
-1. If you get a Windows permissions error, I seemed to get it randomly. Just trying again usually fixed it. You dont even need to restart from scratch, just run the script that threw the error again.
+1. If you get a Windows permissions error, I seemed to get it randomly. Just trying again usually fixed it. You don't even need to restart from scratch, just rerun the script that threw the error.
 
 
 ### Command Line: 
