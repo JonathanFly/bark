@@ -115,7 +115,6 @@ last_audio_samples = []
 global_outputs_to_show = 5
 
 
-    
 loadsave = ui_loadsave.UiLoadsave("gradio_options.json")
 
 
@@ -407,7 +406,6 @@ def generate_audio_long_gradio(
     cloned_voices,
     bark_infinity_voices,
     confused_travolta_mode,
-    additional_unconditional_segments,
     allow_blank,
     stable_mode_interval,
     separate_prompts,
@@ -591,11 +589,6 @@ def generate_audio_long_gradio(
     if confused_travolta_mode != "" and confused_travolta_mode is not None:
         kwargs["confused_travolta_mode"] = confused_travolta_mode
 
-
-    if additional_unconditional_segments != "" and additional_unconditional_segments is not None:
-        kwargs["additional_unconditional_segments"] = int(additional_unconditional_segments)
-    else:
-        kwargs["additional_unconditional_segments"] = 0
 
     if npz_file_in_audio_output != "" and npz_file_in_audio_output is not None:
         print(f"npz_file_in_audio_output: {npz_file_in_audio_output}")
@@ -794,7 +787,6 @@ def generate_audio_long_gradio_clones(
     cloned_voices,
     bark_infinity_voices,
     confused_travolta_mode,
-    additional_unconditional_segments,
     allow_blank,
     stable_mode_interval,
     separate_prompts,
@@ -859,7 +851,6 @@ def generate_audio_long_gradio_clones(
         cloned_voices,
         bark_infinity_voices,
         confused_travolta_mode,
-        additional_unconditional_segments,
         allow_blank,
         stable_mode_interval,
         separate_prompts,
@@ -2302,6 +2293,9 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
                         visible=True,
                     )
 
+                    # model_button = gr.Button("Preload Models Now")
+                    # model_button.click(preload_models_gradio, inputs=model_checkboxes)
+
                 with gr.Column(scale=3, variant="panel"):
                     gr.Markdown("## Bark Infinity Options")
                     with gr.Row():
@@ -2785,10 +2779,6 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
 
     loadsave.add_block(main_top_tabs_block, "bark_infinity")
 
-
-
-
-
     generate_event = generate_button.click(
         generate_audio_long_gradio,
         inputs=[
@@ -2800,7 +2790,6 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
             cloned_voices,
             bark_infinity_voices,
             confused_travolta_mode,
-            additional_unconditional_segments,
             allow_blank,
             stable_mode_interval,
             separate_prompts,
@@ -2874,7 +2863,6 @@ with gr.Blocks(theme=default_theme, css=bark_console_style, title="Bark Infinity
             cloned_voices,
             bark_infinity_voices,
             confused_travolta_mode,
-            additional_unconditional_segments,
             allow_blank,
             stable_mode_interval,
             separate_prompts,

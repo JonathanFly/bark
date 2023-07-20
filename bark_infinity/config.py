@@ -134,7 +134,7 @@ DEFAULTS = {
         (
             "output_format",
             {
-                "value": "mp4",
+                "value": "mp3",
                 "type": str,
                 "help": "(Output format. You can always re-render the uncompressed wav later if you save the speaker.npz files.)",
                 "choices": CHOICES["output_formats"],
@@ -149,6 +149,14 @@ DEFAULTS = {
         Any arguments supported by ffmpeg can be passed as a list. Note that no validation \
         takes place on these parameters, and you may be limited by what your particular \
         build of ffmpeg support. (Why QQQQQ? Sick of punctuation related bugs.) Example: "-volQQQQQ150QQQQQ-q:aQQQQQ0"',
+            },
+        ),
+        (
+            "npz_file_in_audio_output",
+            {
+                "value": False,
+                "type": bool,
+                "help": "Include the audio in the history_prompt .npz file as part of the final audio, as the first segment. (Useful for music.)",
             },
         ),
     ],
@@ -201,6 +209,16 @@ DEFAULTS = {
         ("text_temp", {"value": 0.7, "type": float, "help": "Text temperature. "}),
         ("waveform_temp", {"value": 0.5, "type": float, "help": "Waveform temperature."}),
         ("confused_travolta_mode", {"value": False, "type": bool, "help": "Just for fun. Mostly."}),
+
+                (
+            "additional_unconditional_segments",
+            {
+                "value": 0,
+                "type": int,
+                "help": "Generation more blank (unconditional) audio segments..",
+            },
+        ),
+
         ("silent", {"value": False, "type": bool, "help": "Disable progress bar."}),
         (
             "seed",

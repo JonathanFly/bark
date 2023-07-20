@@ -260,6 +260,8 @@ def semantic_to_waveform(
     return audio_arr
 
 
+
+
 def save_as_prompt(filepath, full_generation):
     assert filepath.endswith(".npz")
     assert isinstance(full_generation, dict)
@@ -536,14 +538,24 @@ def generate_unique_filepath(filepath):
 def write_seg_npz(filepath, full_generation, **kwargs):
     # logger.debug(kwargs)
 
-    if kwargs.get("segment_number", 1) == "base_history":
+    segment_number = kwargs.get("segment_number", 1)
+
+    if segment_number == "base_history":
         filepath = f"{filepath}_orig_speaker.npz"
+
+    if segment_number == "final":
+        filepath = f"{filepath}_full_audio_clip.npz"
 
     if not kwargs.get("dry_run", False):
         filepath = generate_unique_filepath(filepath)
-        # np.savez_compressed(filepath, semantic_prompt = full_generation["semantic_prompt"], coarse_prompt = full_generation["coarse_prompt"], fine_prompt = full_generation["fine_prompt"])
+
+        # Check if full_generation is a list
+        if isinstance(full_generation, list):
+            # Concatenate all elements in the list
+            full_generation = concat_all_history_prompts(full_generation)
+        
         if "semantic_prompt" in full_generation:
-            np.savez(
+            np.savez_compressed(
                 filepath,
                 semantic_prompt=full_generation["semantic_prompt"],
                 coarse_prompt=full_generation["coarse_prompt"],
@@ -785,8 +797,8 @@ def generate_audio_barki(
 
     if negative_text_prompt is not None or specific_npz_file_negative_prompt is not None:
         negative_text_prompt = negative_text_prompt.strip()
-        print(f"---->\nnegative_text_prompt: {negative_text_prompt}")
-        print(f"specific_npz_file_negative_prompt: {specific_npz_file_negative_prompt}")
+        # print(f"---->\nnegative_text_prompt: {negative_text_prompt}")
+        # print(f"specific_npz_file_negative_prompt: {specific_npz_file_negative_prompt}")
 
         negative_text_prompt_logits_scale = kwargs.get("negative_text_prompt_logits_scale", None)
         negative_text_prompt_divergence_scale = kwargs.get(
@@ -797,7 +809,7 @@ def generate_audio_barki(
         print(f"negative_text_prompt_divergence_scale: {negative_text_prompt_divergence_scale}")
 
         # negative_text_prompt_to_use = text
-        negative_text_prompt_to_use = ""
+        negative_text_prompt_to_use = None
         if (
             negative_text_prompt is not None
             and negative_text_prompt != ""
@@ -816,31 +828,33 @@ def generate_audio_barki(
         ):
             negative_history_prompt_to_use = specific_npz_file_negative_prompt
 
-        negative_tokens, negative_logits = call_with_non_none_params(
-            generate_text_semantic,
-            text=negative_text_prompt_to_use,
-            history_prompt=negative_history_prompt_to_use,
-            temp=semantic_temp,
-            top_k=kwargs.get("semantic_top_k", None),
-            top_p=kwargs.get("semantic_top_p", None),
-            silent=silent,
-            min_eos_p=kwargs.get("semantic_min_eos_p", None),
-            max_gen_duration_s=kwargs.get("semantic_max_gen_duration_s", None),
-            allow_early_stop=kwargs.get("semantic_allow_early_stop", True),
-            # use_kv_caching=kwargs.get("semantic_use_kv_caching", True),
-            use_kv_caching=True,
-            semantic_use_mirostat_sampling=semantic_use_mirostat_sampling,
-            semantic_mirostat_tau=semantic_mirostat_tau,
-            semantic_mirostat_learning_rate=semantic_mirostat_learning_rate,
-            semantic_token_repeat_penalty=semantic_token_repeat_penalty,
-            semantic_inverted_p=semantic_inverted_p,
-            semantic_bottom_k=semantic_bottom_k,
-            return_logits=True,
-        )
-        # debug(f"negative_tokens: {negative_tokens}")
-        # debug(f"negative_logits: {negative_logits}")
-    else:
-        print(f"Not using negative_text_prompt or specific_npz_file_negative_prompt.")
+        if negative_history_prompt_to_use is not None or negative_text_prompt_to_use is not None:
+            negative_text_prompt_to_use = "" if negative_text_prompt_to_use is None else negative_text_prompt_to_use
+            negative_tokens, negative_logits = call_with_non_none_params(
+                generate_text_semantic,
+                text=negative_text_prompt_to_use,
+                history_prompt=negative_history_prompt_to_use,
+                temp=semantic_temp,
+                top_k=kwargs.get("semantic_top_k", None),
+                top_p=kwargs.get("semantic_top_p", None),
+                silent=silent,
+                min_eos_p=kwargs.get("semantic_min_eos_p", None),
+                max_gen_duration_s=kwargs.get("semantic_max_gen_duration_s", None),
+                allow_early_stop=kwargs.get("semantic_allow_early_stop", True),
+                # use_kv_caching=kwargs.get("semantic_use_kv_caching", True),
+                use_kv_caching=True,
+                semantic_use_mirostat_sampling=semantic_use_mirostat_sampling,
+                semantic_mirostat_tau=semantic_mirostat_tau,
+                semantic_mirostat_learning_rate=semantic_mirostat_learning_rate,
+                semantic_token_repeat_penalty=semantic_token_repeat_penalty,
+                semantic_inverted_p=semantic_inverted_p,
+                semantic_bottom_k=semantic_bottom_k,
+                return_logits=True,
+            )
+            # debug(f"negative_tokens: {negative_tokens}")
+            # debug(f"negative_logits: {negative_logits}")
+        else:
+            print(f"Not using negative_text_prompt or specific_npz_file_negative_prompt.")
 
     if semantic_tokens is None:
         semantic_tokens = call_with_non_none_params(
@@ -1046,8 +1060,8 @@ def generate_audio_sampling_mods_old(
     negative_text_prompt_divergence_scale = None
 
     if negative_text_prompt is not None or specific_npz_file_negative_prompt is not None:
-        print(f"negative_text_prompt: {negative_text_prompt}")
-        print(f"specific_npz_file_negative_prompt: {specific_npz_file_negative_prompt}")
+        # print(f"negative_text_prompt: {negative_text_prompt}")
+        # print(f"specific_npz_file_negative_prompt: {specific_npz_file_negative_prompt}")
 
         negative_text_prompt_logits_scale = kwargs.get("negative_text_prompt_logits_scale", None)
         negative_text_prompt_divergence_scale = kwargs.get(
@@ -1306,6 +1320,35 @@ def generate_audio_long_from_gradio(**kwargs):
         clone_created_filepath,
     )
 
+def concat_all_history_prompts(history_prompts):
+    # Initialize empty lists
+    new_semantic_prompts = []
+    new_coarse_prompts = []
+    new_fine_prompts = []
+
+    # Collect prompts into lists
+    for prompt in history_prompts:
+        new_semantic_prompts.append(prompt["semantic_prompt"])
+        new_coarse_prompts.append(prompt["coarse_prompt"])
+        new_fine_prompts.append(prompt["fine_prompt"])
+
+    # Handle 1D array concatenation
+    new_semantic_prompt = np.concatenate(new_semantic_prompts).astype(np.int32)
+
+    # Handle 2D array concatenation, assuming they have the same number of rows
+    new_coarse_prompt = np.hstack(new_coarse_prompts).astype(np.int32)
+    new_fine_prompt = np.hstack(new_fine_prompts).astype(np.int32)
+
+    # Build the concatenated history prompt
+    concatenated_history_prompt = {
+        "semantic_prompt": new_semantic_prompt,
+        "coarse_prompt": new_coarse_prompt,
+        "fine_prompt": new_fine_prompt,
+    }
+
+    return concatenated_history_prompt
+
+
 
 def generate_audio_long(
     **kwargs,
@@ -1353,6 +1396,9 @@ def generate_audio_long(
     silent = kwargs.get("silent", None)
 
     full_generation_segments = []
+
+
+
     audio_arr_segments = []
 
     stable_mode_interval = kwargs.get("stable_mode_interval", None)
@@ -1389,8 +1435,10 @@ def generate_audio_long(
     process_text_by_each = kwargs.get("process_text_by_each", None)
     group_text_by_counting = kwargs.get("group_text_by_counting", None)
 
+    history_prompt_string = None
     history_prompt_for_next_segment = None
     base_history = None
+    og_npz_file = None
     if history_prompt is not None:
         history_prompt_string = history_prompt
         history_prompt = process_history_prompt(history_prompt)
@@ -1403,7 +1451,8 @@ def generate_audio_long(
             kwargs["previous_segment_type"] = "base_history"
             history_prompt_for_next_segment = copy.deepcopy(
                 base_history
-            )  # just start from a dict for consistency
+            )
+            og_npz_file = copy.deepcopy(base_history)  # just start from a dict for consistency
         else:
             logger.error(
                 f"Speaker {history_prompt} could not be found, looking in{VALID_HISTORY_PROMPT_DIRS}"
@@ -1423,6 +1472,13 @@ def generate_audio_long(
         print("Nothing was generated, this is just text the splits!")
         return None, None, None, None
 
+
+    additional_unconditional_segments = kwargs.get("additional_unconditional_segments", 0)
+
+    if additional_unconditional_segments > 0:
+        for i in range(additional_unconditional_segments):
+            audio_segments.append("")
+            
     # way too many files, for hoarder_mode every sample is in own dir
     if hoarder_mode and len(audio_segments) > 1:
         output_dir = kwargs.get("output_dir", "bark_samples")
@@ -1446,7 +1502,7 @@ def generate_audio_long(
     # doubled_audio_segments = [item for item in audio_segments for _ in range(2)]
     # audio_segments = doubled_audio_segments
 
-    kwargs["total_segments"] = len(audio_segments)
+
 
     show_generation_times = kwargs.get("show_generation_times", None)
 
@@ -1456,7 +1512,13 @@ def generate_audio_long(
     if len(audio_segments) < 1:
         audio_segments.append("")
 
+
+
+
+    kwargs["total_segments"] = len(audio_segments)
+
     for i, segment_text in enumerate(audio_segments):
+
         estimated_time = estimate_spoken_time(segment_text)
         print(f"segment_text: {segment_text}")
 
@@ -1610,15 +1672,28 @@ def generate_audio_long(
     kwargs["segment_number"] = "final"
     final_filename_will_be = determine_output_filename(**kwargs)
     dry_run = kwargs.get("dry_run", None)
+
+
+    npz_file_in_audio_output = kwargs.get("npz_file_in_audio_output", False)
+
+    if npz_file_in_audio_output and og_npz_file is not None and "fine_prompt" in og_npz_file:
+        full_generation_segments.insert(0, og_npz_file)
+        npz_fine_prompt = og_npz_file["fine_prompt"]
+        npz_audio_arr = codec_decode(npz_fine_prompt)
+        audio_arr_segments.insert(0, npz_audio_arr)
+
+
     if not dry_run:
         if len(audio_arr_segments) > 0:
             write_one_segment(
                 audio_arr=np.concatenate(audio_arr_segments),
-                full_generation=full_generation_segments[0],
+                # full_generation=full_generation_segments[0],
+                full_generation=full_generation_segments,
                 **kwargs,
             )
         else:
             print("No audio to write. Something may have gone wrong.")
+            
     print(f"Saved to {final_filename_will_be}")
 
     # generation.clean_models()
@@ -1658,9 +1733,10 @@ def doctor_random_speaker_surgery(npz_filepath, gen_minor_variants=5):
     semantic_prompt = original_history_prompt["semantic_prompt"]
     original_semantic_prompt = copy.deepcopy(semantic_prompt)
 
-    starting_point = 128
+    starting_point = 64
     ending_point = len(original_semantic_prompt) - starting_point
 
+    print(f"starting_point: {starting_point}, ending_point: {ending_point} gen_minor_variants: {gen_minor_variants}")
     points = np.linspace(starting_point, ending_point, gen_minor_variants)
 
     i = 0
@@ -1715,7 +1791,7 @@ def doctor_random_speaker_surgery(npz_filepath, gen_minor_variants=5):
                 output_filepath = generate_unique_filepath(output_filepath)
                 print(f"output_filepath {output_filepath}")
                 print(
-                    f"  Rendering minor variant voice audio for {npz_filepath} to {output_filepath}"
+                    f"  Rendering variant voice audio for {npz_filepath} to {output_filepath}"
                 )
                 write_seg_wav(output_filepath, audio_arr)
 

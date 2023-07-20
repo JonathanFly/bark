@@ -844,6 +844,7 @@ def generate_text_semantic(
     negative_text_prompt_logits_sliding_scale=None,
     negative_text_prompt_logits_scale_window_size=164,
     negative_text_prompt_divergence_scale=None,
+    allow_early_stop_variant=True,
 ):
     """Generate semantic tokens from text."""
 
@@ -955,6 +956,9 @@ def generate_text_semantic(
             # print(f"Shape of cum_negative_influence: {cum_negative_influence.shape}")
             # Shape of cum_negative_influence: torch.Size([1, 10001])
 
+
+        eos_probabilities = []  
+
         for n in range(n_tot_steps):
             # if use_kv_caching and kv_cache is not None:
             #    x_input = x[:, [-1]]
@@ -970,7 +974,7 @@ def generate_text_semantic(
                 x_input, merge_context=True, use_cache=use_kv_caching, past_kv=kv_cache
             )
             relevant_logits = logits[0, 0, :SEMANTIC_VOCAB_SIZE]
-            if allow_early_stop:
+            if allow_early_stop or allow_early_stop_variant:
                 relevant_logits = torch.hstack(
                     (relevant_logits, logits[0, 0, [SEMANTIC_PAD_TOKEN]])  # eos
                 )
@@ -1082,6 +1086,9 @@ def generate_text_semantic(
                             negative_text_prompt_logits_scale * negative_logits[neg_n]
                         )
 
+                    # else:
+                        # print(f"We have negative logits but no negative influence")
+
                     relevant_logits = torch.where(
                         torch.isfinite(relevant_logits),
                         relevant_logits,
@@ -1089,18 +1096,30 @@ def generate_text_semantic(
                     )
 
                 probs = F.softmax(relevant_logits / temp, dim=-1)
+
+
+                eos_probabilities.append(probs[-1].item())
+
+
                 item_next = torch.multinomial(probs, num_samples=1).to(torch.int32)
 
-            if allow_early_stop and (
-                item_next == SEMANTIC_VOCAB_SIZE
-                or (min_eos_p is not None and probs[-1] >= min_eos_p)
-            ):
-                n -= 1  # backtrack 1
-                # eos found, so break
-                pbar.total = n
-                pbar.update(n - pbar_state)
+                if (allow_early_stop or allow_early_stop_variant) and (
+                    item_next == SEMANTIC_VOCAB_SIZE
+                    or (min_eos_p is not None and probs[-1] >= min_eos_p)
+                ):
+                    if allow_early_stop_variant and item_next == SEMANTIC_VOCAB_SIZE:
+                        # If the eos token was sampled, choose the second most probable token
+                        _, indices_sorted = torch.sort(probs, descending=True)
+                        # Get the most probable token that is not the eos token
+                        item_next = next(idx for idx in indices_sorted if idx != SEMANTIC_VOCAB_SIZE)
+                        item_next = item_next.to(torch.int32)
+                    else:
+                        n -= 1  # backtrack 1
+                        # eos found, so break
+                        pbar.total = n
+                        pbar.update(n - pbar_state)
 
-                break
+                        break
             # x = torch.cat((x, item_next[None]), dim=1)
             if semantic_token_repeat_penalty != 0.0 and semantic_token_repeat_penalty != 1.0:
                 token_counts[int(item_next)] += 1
@@ -1133,6 +1152,9 @@ def generate_text_semantic(
             print("Average surprise value:", sum(indices_surprise_history) / len(out))
             print(f"Generated Miro: {miro_generated}")
             print(f"out: {out}")
+
+        if allow_early_stop_variant:
+            print(f"EOS probability: {eos_probabilities}")
     if OFFLOAD_CPU:
         model.to("cpu")
     assert all(0 <= out) and all(out < SEMANTIC_VOCAB_SIZE)

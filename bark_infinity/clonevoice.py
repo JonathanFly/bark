@@ -199,9 +199,6 @@ def write_clone_npz(filepath, full_generation, regen_fine=False, gen_raw_coarse=
         quick_codec_render(new_filepath)
 
 
-# missing at least two good tokens
-soft_semantic = [2, 3, 4, 5, 10, 206]
-# allowed_splits = [3,4,5,10]
 
 
 # somehow actually works great
@@ -215,6 +212,12 @@ def segment_these_semantics_smartly_and_smoothly(
     require_consecutive_split_tokens=True,
     repetition_threshold=15,
 ):
+    
+    # missing at least two good tokens
+    soft_semantic = [2, 3, 4, 5, 10, 206]
+    # allowed_splits = [3,4,5,10]
+
+
     segments = []
     segment = []
     split_counter = 0
@@ -1021,7 +1024,7 @@ def concat_history_prompts(history_prompt1, history_prompt2):
         [history_prompt1["semantic_prompt"], history_prompt2["semantic_prompt"]]
     ).astype(
         np.int32
-    )  # not int64?
+    )  
     new_coarse_prompt = np.hstack(
         [history_prompt1["coarse_prompt"], history_prompt2["coarse_prompt"]]
     ).astype(np.int32)

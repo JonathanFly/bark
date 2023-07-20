@@ -250,11 +250,13 @@ class UiLoadsave:
             fn=self.ui_view,
             inputs=list(self.component_mapping.values()),
             outputs=[self.ui_defaults_review],
+            queue=False,
         )
         self.ui_defaults_apply.click(
             fn=self.ui_apply,
             inputs=list(self.component_mapping.values()),
             outputs=[self.ui_defaults_review],
+            queue=False,
         )
 
         # print(f"UI default component+path mapping: {self.component_mapping}")

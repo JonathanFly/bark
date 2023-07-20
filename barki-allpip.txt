@@ -57,3 +57,4 @@ beartype
 ema-pytorch
 lion-pytorch
 local-attention
+vocos>=0.0.3

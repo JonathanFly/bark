@@ -33,4 +33,5 @@ audiolm-pytorch
 universal-startfile
 gradio>=3.34.0
 pywin32 ; platform_system == 'Windows'
+vocos>=0.0.3
 
